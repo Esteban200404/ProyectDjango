@@ -1,0 +1,48 @@
+{% extends "library/base.html" %}
+
+{% block title %}Préstamos de {{ user.name }} | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div style="display:flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin:0;">Préstamos de {{ user.name }}</h2>
+            <p style="margin:0; color:#6c757d;">{{ user.email }}</p>
+        </div>
+        <a class="button secondary" href="{% url 'lista_libros' %}">Volver al catálogo</a>
+    </div>
+</section>
+
+{% if loans %}
+    <table>
+        <thead>
+            <tr>
+                <th>Libro</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for loan in loans %}
+            <tr>
+                <td><a href="{% url 'detalle_libro' libro_id=loan.book.id %}">{{ loan.book.title }}</a></td>
+                <td>{{ loan.start_date }}</td>
+                <td>{{ loan.end_date }}</td>
+                <td>
+                    {% if loan.returned %}
+                        <span class="status status--available">Devuelto</span>
+                    {% else %}
+                        <span class="status status--loaned">En préstamo</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <section class="panel">
+        <p>Este usuario aún no tiene préstamos registrados.</p>
+    </section>
+{% endif %}
+{% endblock %}

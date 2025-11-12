@@ -1,0 +1,18 @@
+{% extends "library/base.html" %}
+
+{% block title %}Devolver libro | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <h2 style="margin-top:0;">Confirmar devolución</h2>
+    <p><strong>Libro:</strong> {{ loan.book.title }}</p>
+    <p><strong>Usuario:</strong> {{ loan.user.name }}</p>
+    <p><strong>Fecha de inicio:</strong> {{ loan.start_date }}</p>
+    <form method="post" style="margin-top:1.5rem; display:flex; gap:0.8rem;">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="primary">Confirmar devolución</button>
+        <a class="button secondary" href="{% url 'detalle_libro' libro_id=loan.book.id %}">Cancelar</a>
+    </form>
+</section>
+{% endblock %}

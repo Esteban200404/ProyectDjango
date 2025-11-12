@@ -1,0 +1,25 @@
+{% extends "library/base.html" %}
+
+{% block title %}{{ action }} | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <h2>{{ action }}</h2>
+    <form method="post" class="styled-form">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <small class="helptext">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                    <small class="field-error">{{ error }}</small>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="button primary">{{ action }}</button>
+    </form>
+</section>
+{% endblock %}

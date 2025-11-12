@@ -1,0 +1,36 @@
+{% extends "library/base.html" %}
+
+{% block title %}Calificaciones | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Calificaciones</h2>
+        <a class="button primary" href="{% url 'nueva_calificacion' %}">Agregar calificación</a>
+    </div>
+    {% if ratings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Comentarios</th>
+                    <th>Calificación</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rating in ratings %}
+                    <tr>
+                        <td>{{ rating.name }}</td>
+                        <td>{{ rating.comments|truncatechars:50 }}</td>
+                        <td>{{ rating.rating }}/10</td>
+                        <td>{{ rating.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay calificaciones registradas.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "library/base.html" %}
+
+{% block title %}Libros | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin-bottom:0.3rem;">Listado de libros</h2>
+            <p style="margin:0; color:#6c757d;">Gestiona tu catálogo y el estado de los préstamos.</p>
+        </div>
+        <a class="button primary" href="{% url 'nuevo_libro' %}">+ Nuevo libro</a>
+    </div>
+</section>
+
+{% if books %}
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Año</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for book in books %}
+            <tr>
+                <td>{{ book.title }}</td>
+                <td>{{ book.author.name }}</td>
+                <td>{{ book.year }}</td>
+                <td>
+                    {% if book.is_loaned %}
+                        <span class="status status--loaned">Prestado</span>
+                    {% else %}
+                        <span class="status status--available">Disponible</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="button secondary" href="{% url 'detalle_libro' libro_id=book.id %}">Ver detalle</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <section class="panel">
+        <p style="margin-bottom: 1rem;">Todavía no hay libros registrados.</p>
+        <a class="button primary" href="{% url 'nuevo_libro' %}">Agregar el primero</a>
+    </section>
+{% endif %}
+{% endblock %}

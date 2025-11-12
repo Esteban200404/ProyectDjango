@@ -1,0 +1,67 @@
+{% extends "library/base.html" %}
+
+{% block title %}{{ book.title }} | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel" style="display:flex; flex-direction: column; gap: 1.2rem;">
+    <div>
+        <h2 style="margin-bottom:0.2rem;">{{ book.title }}</h2>
+        <p style="margin:0; color:#6c757d;">{{ book.author.name }} · {{ book.year }}</p>
+    </div>
+
+    <div style="display:flex; gap:1rem; flex-wrap: wrap;">
+        <a class="button secondary" href="{% url 'editar_libro' libro_id=book.id %}">Editar libro</a>
+        {% if not active_loan %}
+            <a class="button primary" href="{% url 'prestar_libro' libro_id=book.id %}">Registrar préstamo</a>
+        {% endif %}
+    </div>
+
+    {% if active_loan %}
+        <div class="panel" style="margin:-0.5rem; background:#f8f9fa;">
+            <h3 style="margin-top:0;">Préstamo activo</h3>
+            <p style="margin-bottom:0.4rem;">Usuario:
+                <a href="{% url 'prestamos_usuario' usuario_id=active_loan.user.id %}">{{ active_loan.user.name }}</a>
+            </p>
+            <p style="margin-bottom:0.2rem;">Inicio: {{ active_loan.start_date }}</p>
+            <p style="margin-bottom:1rem;">Entrega prevista: {{ active_loan.end_date }}</p>
+            <a class="button" href="{% url 'devolver_prestamo' prestamo_id=active_loan.id %}">Marcar como devuelto</a>
+        </div>
+    {% else %}
+        <p style="margin:0;">Actualmente el libro está <span class="status status--available">Disponible</span>.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <h3 style="margin-top:0;">Historial de préstamos</h3>
+    {% if loan_history %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loan_history %}
+                    <tr>
+                        <td><a href="{% url 'prestamos_usuario' usuario_id=loan.user.id %}">{{ loan.user.name }}</a></td>
+                        <td>{{ loan.start_date }}</td>
+                        <td>{{ loan.end_date }}</td>
+                        <td>
+                            {% if loan.returned %}
+                                <span class="status status--available">Devuelto</span>
+                            {% else %}
+                                <span class="status status--loaned">En préstamo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay préstamos registrados para este libro.</p>
+    {% endif %}
+</section>
+{% endblock %}

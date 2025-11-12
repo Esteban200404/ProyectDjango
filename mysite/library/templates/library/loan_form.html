@@ -1,0 +1,38 @@
+{% extends "library/base.html" %}
+
+{% block title %}Registrar préstamo | Mini biblioteca{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <h2 style="margin-top:0;">Registrar préstamo para "{{ book.title }}"</h2>
+    {% if book.is_loaned %}
+        <p class="field-error">Este libro ya está prestado actualmente. Primero marca la devolución para continuar.</p>
+    {% endif %}
+    <form method="post" class="styled-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="field-error">
+                {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <span class="helptext">{{ field.help_text }}</span>
+                {% endif %}
+                {% for error in field.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div style="display:flex; gap:0.8rem;">
+            <button type="submit" class="primary" {% if book.is_loaned %}disabled{% endif %}>Guardar préstamo</button>
+            <a class="button secondary" href="{% url 'detalle_libro' libro_id=book.id %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
