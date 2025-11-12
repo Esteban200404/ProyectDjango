@@ -60,4 +60,5 @@ class RatingForm(forms.ModelForm):
         fields = ['name', 'comments', 'rating']
         widgets = {
             'comments': forms.Textarea(attrs={'rows': 4}),
+            
         }
