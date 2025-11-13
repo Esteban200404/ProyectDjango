@@ -20,6 +20,12 @@ except ImportError:  # pragma: no cover - handled at runtime
     PyMongoError = Exception  # type: ignore
 
 
+class MongoUnavailableError(RuntimeError):
+    """Raised when MongoDB backend cannot be used."""
+
+    pass
+
+
 @dataclass
 class MongoAuthor:
     id: str
@@ -73,20 +79,29 @@ class MongoDataSource:
         self._client: Optional[MongoClient] = None
 
     def _require_client(self) -> MongoClient:
-        if MongoClient is None:  # pragma: no cover - import guard
-            raise RuntimeError(
+        if not self.is_available():  # pragma: no cover - import guard path
+            raise MongoUnavailableError(
                 'pymongo no está instalado. Ejecuta `pip install pymongo` para habilitar la fuente Mongo.'
             )
         if self._client is None:
-            self._client = MongoClient(
-                settings.MONGO_URI,
-                serverSelectionTimeoutMS=3000,
-            )
+            try:
+                self._client = MongoClient(
+                    settings.MONGO_URI,
+                    serverSelectionTimeoutMS=3000,
+                )
+                # Force a quick ping to fail fast if the server is unreachable.
+                self._client.admin.command('ping')
+            except PyMongoError as exc:  # pragma: no cover - runtime guard
+                self._client = None
+                raise MongoUnavailableError(f'No se pudo conectar a MongoDB ({exc}).') from exc
         return self._client
 
     @property
     def db(self):
         return self._require_client()[settings.MONGO_DB_NAME]
+
+    def is_available(self) -> bool:
+        return MongoClient is not None
 
     def _object_id(self, raw_id: str) -> ObjectId:
         if ObjectId is None:  # pragma: no cover

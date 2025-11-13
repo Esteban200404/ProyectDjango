@@ -17,7 +17,7 @@
     </div>
 
     {% if active_loan %}
-        <div class="panel" style="margin:-0.5rem; background:#f8f9fa;">
+        <div class="panel" style="margin:-0.5rem;">
             <h3 style="margin-top:0;">Préstamo activo</h3>
             <p style="margin-bottom:0.4rem;">Usuario:
                 <a href="{% url 'prestamos_usuario' usuario_id=active_loan.user.id %}">{{ active_loan.user.name }}</a>

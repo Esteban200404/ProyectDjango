@@ -20,7 +20,7 @@ from .forms import (
     RatingForm,
 )
 from .models import Book, LibraryUser, Loan, Rating
-from .mongo_repository import mongo_repository
+from .mongo_repository import MongoUnavailableError, mongo_repository
 
 
 def _parse_sql_id(raw_id):
@@ -31,23 +31,42 @@ def _parse_sql_id(raw_id):
     raise Http404('Identificador inválido')
 
 
+def _fallback_to_sql(request, exc: Exception) -> str:
+    messages.error(
+        request,
+        f'No se pudo usar MongoDB: {exc}. Cambiamos automáticamente a SQLite.',
+    )
+    set_active_data_source(request, DATA_SOURCE_SQL)
+    return DATA_SOURCE_SQL
+
+
 @require_POST
 def change_data_source(request):
     source = request.POST.get('source')
     if source not in (DATA_SOURCE_SQL, DATA_SOURCE_MONGO):
         return HttpResponseBadRequest('Fuente inválida')
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('lista_libros')
+    if source == DATA_SOURCE_MONGO and not mongo_repository.is_available():
+        messages.error(
+            request,
+            'MongoDB no está disponible. Instala `pymongo` y asegúrate de tener el servidor ejecutándose.',
+        )
+        return redirect(next_url)
     set_active_data_source(request, source)
     label = 'MongoDB' if source == DATA_SOURCE_MONGO else 'SQLite'
     messages.info(request, f'Se cambió la fuente de datos a {label}.')
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('lista_libros')
     return redirect(next_url)
 
 
 def book_list(request):
     data_source = get_active_data_source(request)
+    books = None
     if data_source == DATA_SOURCE_MONGO:
-        books = mongo_repository.list_books()
-    else:
+        try:
+            books = mongo_repository.list_books()
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         books = Book.objects.select_related('author').all()
     return render(
         request,
@@ -61,9 +80,15 @@ def book_list(request):
 
 def book_detail(request, libro_id):
     data_source = get_active_data_source(request)
+    book = None
+    active_loan = None
+    loan_history = []
     if data_source == DATA_SOURCE_MONGO:
-        book, active_loan, loan_history = mongo_repository.get_book_detail(libro_id)
-    else:
+        try:
+            book, active_loan, loan_history = mongo_repository.get_book_detail(libro_id)
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         book = get_object_or_404(Book.objects.select_related('author'), pk=_parse_sql_id(libro_id))
         active_loan = book.loans.select_related('user').filter(returned=False).first()
         loan_history = book.loans.select_related('user').all()
@@ -80,14 +105,18 @@ def book_detail(request, libro_id):
 
 def book_create(request):
     data_source = get_active_data_source(request)
+    form = None
     if data_source == DATA_SOURCE_MONGO:
-        author_choices = mongo_repository.author_choices()
-        form = MongoBookForm(request.POST or None, author_choices=author_choices)
-        if request.method == 'POST' and form.is_valid():
-            book_id = mongo_repository.create_book(form.cleaned_data)
-            messages.success(request, 'Libro creado correctamente en MongoDB.')
-            return redirect('detalle_libro', libro_id=book_id)
-    else:
+        try:
+            author_choices = mongo_repository.author_choices()
+            form = MongoBookForm(request.POST or None, author_choices=author_choices)
+            if request.method == 'POST' and form.is_valid():
+                book_id = mongo_repository.create_book(form.cleaned_data)
+                messages.success(request, 'Libro creado correctamente en MongoDB.')
+                return redirect('detalle_libro', libro_id=book_id)
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         if request.method == 'POST':
             form = BookForm(request.POST)
             if form.is_valid():
@@ -101,16 +130,20 @@ def book_create(request):
 
 def book_edit(request, libro_id):
     data_source = get_active_data_source(request)
+    form = None
     if data_source == DATA_SOURCE_MONGO:
-        book = mongo_repository.get_book(libro_id)
-        author_choices = mongo_repository.author_choices()
-        initial = {'title': book.title, 'year': book.year, 'author': book.author.id}
-        form = MongoBookForm(request.POST or None, author_choices=author_choices, initial=initial)
-        if request.method == 'POST' and form.is_valid():
-            mongo_repository.update_book(book.id, form.cleaned_data)
-            messages.success(request, 'Cambios guardados en MongoDB.')
-            return redirect('detalle_libro', libro_id=book.id)
-    else:
+        try:
+            book = mongo_repository.get_book(libro_id)
+            author_choices = mongo_repository.author_choices()
+            initial = {'title': book.title, 'year': book.year, 'author': book.author.id}
+            form = MongoBookForm(request.POST or None, author_choices=author_choices, initial=initial)
+            if request.method == 'POST' and form.is_valid():
+                mongo_repository.update_book(book.id, form.cleaned_data)
+                messages.success(request, 'Cambios guardados en MongoDB.')
+                return redirect('detalle_libro', libro_id=book.id)
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         book = get_object_or_404(Book, pk=_parse_sql_id(libro_id))
         if request.method == 'POST':
             form = BookForm(request.POST, instance=book)
@@ -125,24 +158,29 @@ def book_edit(request, libro_id):
 
 def loan_create(request, libro_id):
     data_source = get_active_data_source(request)
+    form = None
+    book = None
     if data_source == DATA_SOURCE_MONGO:
-        book = mongo_repository.get_book(libro_id)
-        if request.method != 'POST' and book.is_loaned():
-            messages.warning(
-                request,
-                'Este libro ya está prestado. Debe devolverse antes de registrar un nuevo préstamo.',
-            )
-        user_choices = mongo_repository.user_choices()
-        form = MongoLoanForm(request.POST or None, user_choices=user_choices)
-        if request.method == 'POST' and form.is_valid():
-            try:
-                mongo_repository.create_loan(book.id, form.cleaned_data)
-            except ValueError as exc:
-                form.add_error(None, str(exc))
-            else:
-                messages.success(request, 'Préstamo registrado en MongoDB.')
-                return redirect('detalle_libro', libro_id=book.id)
-    else:
+        try:
+            book = mongo_repository.get_book(libro_id)
+            if request.method != 'POST' and book.is_loaned():
+                messages.warning(
+                    request,
+                    'Este libro ya está prestado. Debe devolverse antes de registrar un nuevo préstamo.',
+                )
+            user_choices = mongo_repository.user_choices()
+            form = MongoLoanForm(request.POST or None, user_choices=user_choices)
+            if request.method == 'POST' and form.is_valid():
+                try:
+                    mongo_repository.create_loan(book.id, form.cleaned_data)
+                except ValueError as exc:
+                    form.add_error(None, str(exc))
+                else:
+                    messages.success(request, 'Préstamo registrado en MongoDB.')
+                    return redirect('detalle_libro', libro_id=book.id)
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         book = get_object_or_404(Book, pk=_parse_sql_id(libro_id))
         if request.method != 'POST' and book.is_loaned():
             messages.warning(
@@ -169,10 +207,15 @@ def loan_create(request, libro_id):
 
 def user_loans(request, usuario_id):
     data_source = get_active_data_source(request)
+    user = None
+    loans = []
     if data_source == DATA_SOURCE_MONGO:
-        user = mongo_repository.get_user(usuario_id)
-        loans = mongo_repository.list_user_loans(usuario_id)
-    else:
+        try:
+            user = mongo_repository.get_user(usuario_id)
+            loans = mongo_repository.list_user_loans(usuario_id)
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         user = get_object_or_404(LibraryUser, pk=_parse_sql_id(usuario_id))
         loans = user.loans.select_related('book', 'book__author').all()
     return render(
@@ -187,19 +230,24 @@ def user_loans(request, usuario_id):
 
 def loan_return(request, prestamo_id):
     data_source = get_active_data_source(request)
+    loan = None
+    form = None
     if data_source == DATA_SOURCE_MONGO:
-        loan = mongo_repository.get_loan(prestamo_id)
-        if loan.returned:
-            return redirect('detalle_libro', libro_id=loan.book.id)
-        if request.method == 'POST':
-            form = LoanReturnForm(request.POST)
-            if form.is_valid() and form.cleaned_data['confirm']:
-                mongo_repository.mark_loan_returned(loan.id)
-                messages.success(request, 'Préstamo marcado como devuelto.')
+        try:
+            loan = mongo_repository.get_loan(prestamo_id)
+            if loan.returned:
                 return redirect('detalle_libro', libro_id=loan.book.id)
-        else:
-            form = LoanReturnForm(initial={'confirm': True})
-    else:
+            if request.method == 'POST':
+                form = LoanReturnForm(request.POST)
+                if form.is_valid() and form.cleaned_data['confirm']:
+                    mongo_repository.mark_loan_returned(loan.id)
+                    messages.success(request, 'Préstamo marcado como devuelto.')
+                    return redirect('detalle_libro', libro_id=loan.book.id)
+            else:
+                form = LoanReturnForm(initial={'confirm': True})
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         loan = get_object_or_404(Loan.objects.select_related('book'), pk=_parse_sql_id(prestamo_id))
         if loan.returned:
             return redirect('detalle_libro', libro_id=loan.book_id)
@@ -225,13 +273,17 @@ def loan_return(request, prestamo_id):
 
 def rating_create(request):
     data_source = get_active_data_source(request)
+    form = None
     if data_source == DATA_SOURCE_MONGO:
-        form = MongoRatingForm(request.POST or None)
-        if request.method == 'POST' and form.is_valid():
-            mongo_repository.create_rating(form.cleaned_data)
-            messages.success(request, 'Calificación registrada correctamente (MongoDB).')
-            return redirect('lista_calificaciones')
-    else:
+        try:
+            form = MongoRatingForm(request.POST or None)
+            if request.method == 'POST' and form.is_valid():
+                mongo_repository.create_rating(form.cleaned_data)
+                messages.success(request, 'Calificación registrada correctamente (MongoDB).')
+                return redirect('lista_calificaciones')
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         if request.method == 'POST':
             form = RatingForm(request.POST)
             if form.is_valid():
@@ -245,8 +297,12 @@ def rating_create(request):
 
 def rating_list(request):
     data_source = get_active_data_source(request)
+    ratings = []
     if data_source == DATA_SOURCE_MONGO:
-        ratings = mongo_repository.list_ratings()
-    else:
+        try:
+            ratings = mongo_repository.list_ratings()
+        except MongoUnavailableError as exc:
+            data_source = _fallback_to_sql(request, exc)
+    if data_source == DATA_SOURCE_SQL:
         ratings = Rating.objects.all()
     return render(request, 'library/rating_list.html', {'ratings': ratings})
