@@ -4,33 +4,44 @@
 
 {% block content %}
 <section class="panel">
-    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>Calificaciones</h2>
-        <a class="button primary" href="{% url 'nueva_calificacion' %}">Agregar calificación</a>
+    <div class="panel-header">
+        <div>
+            <span class="eyebrow">Feedback</span>
+            <h2>Calificaciones</h2>
+            <p>{{ ratings|length }} rese&ntilde;as registradas hasta el momento.</p>
+        </div>
+        <a class="button primary" href="{% url 'nueva_calificacion' %}">Agregar calificaci&oacute;n</a>
     </div>
     {% if ratings %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Comentarios</th>
-                    <th>Calificación</th>
-                    <th>Fecha</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rating in ratings %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ rating.name }}</td>
-                        <td>{{ rating.comments|truncatechars:50 }}</td>
-                        <td>{{ rating.rating }}/10</td>
-                        <td>{{ rating.created_at|date:"d/m/Y H:i" }}</td>
+                        <th>Nombre</th>
+                        <th>Comentarios</th>
+                        <th>Calificaci&oacute;n</th>
+                        <th>Fecha</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for rating in ratings %}
+                        <tr>
+                            <td>{{ rating.name }}</td>
+                            <td>{{ rating.comments|default:"Sin comentarios"|truncatechars:80 }}</td>
+                            <td><span class="chip chip--accent">{{ rating.rating }}/10</span></td>
+                            <td>
+                                {{ rating.created_at|date:"d/m/Y" }}<br>
+                                <small class="text-muted">{{ rating.created_at|date:"H:i" }} h</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>No hay calificaciones registradas.</p>
+        <div class="empty-state">
+            No hay calificaciones registradas todav&iacute;a. S&eacute; la primera en compartir tu opini&oacute;n.
+        </div>
     {% endif %}
 </section>
 {% endblock %}

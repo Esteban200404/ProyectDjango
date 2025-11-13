@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Book, Loan , Rating
+from .models import Book, Loan, Rating
 
 
 class BookForm(forms.ModelForm):
@@ -54,11 +54,59 @@ class LoanForm(forms.ModelForm):
 class LoanReturnForm(forms.Form):
     confirm = forms.BooleanField(widget=forms.HiddenInput(), initial=True)
 
+
 class RatingForm(forms.ModelForm):
     class Meta:
         model = Rating
         fields = ['name', 'comments', 'rating']
         widgets = {
             'comments': forms.Textarea(attrs={'rows': 4}),
-            
         }
+
+
+class MongoBookForm(forms.Form):
+    title = forms.CharField(label='Título', max_length=200)
+    year = forms.IntegerField(label='Año', min_value=0)
+    author = forms.ChoiceField(label='Autor')
+
+    def __init__(self, *args, author_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['author'].choices = author_choices or []
+
+
+class MongoLoanForm(forms.Form):
+    user = forms.ChoiceField(label='Usuario')
+    start_date = forms.DateField(label='Inicio', widget=forms.DateInput(attrs={'type': 'date'}))
+    end_date = forms.DateField(label='Fin', widget=forms.DateInput(attrs={'type': 'date'}))
+
+    def __init__(self, *args, user_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].choices = user_choices or []
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get('start_date')
+        end = cleaned_data.get('end_date')
+        if start and end and end < start:
+            self.add_error('end_date', 'La fecha de fin no puede ser anterior a la fecha de inicio.')
+        return cleaned_data
+
+
+class MongoRatingForm(forms.Form):
+    name = forms.CharField(label='Nombre', max_length=100)
+    comments = forms.CharField(
+        label='Comentarios',
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 4}),
+    )
+    rating = forms.ChoiceField(
+        label='Calificación',
+        choices=[(str(i), f'{i}') for i in range(1, 11)],
+    )
+
+    def clean_rating(self):
+        value = self.cleaned_data['rating']
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise forms.ValidationError('Calificación inválida') from exc

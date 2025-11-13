@@ -4,7 +4,14 @@
 
 {% block content %}
 <section class="panel">
-    <h2>{{ action }}</h2>
+    <div class="panel-header">
+        <div>
+            <span class="eyebrow">Experiencia lectora</span>
+            <h2>{{ action }}</h2>
+            <p>Cu&eacute;ntanos c&oacute;mo te fue con tu &uacute;ltima lectura.</p>
+        </div>
+        <a class="button secondary" href="{% url 'lista_calificaciones' %}">Volver</a>
+    </div>
     <form method="post" class="styled-form">
         {% csrf_token %}
         {% for field in form %}
@@ -19,7 +26,10 @@
                 {% endfor %}
             </div>
         {% endfor %}
-        <button type="submit" class="button primary">{{ action }}</button>
+        <div class="form-actions">
+            <button type="submit" class="button primary">{{ action }}</button>
+            <a class="button secondary" href="{% url 'lista_calificaciones' %}">Cancelar</a>
+        </div>
     </form>
 </section>
 {% endblock %}

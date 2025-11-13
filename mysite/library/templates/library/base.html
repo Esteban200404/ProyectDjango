@@ -3,145 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Mini biblioteca{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mini.css@4.0.0/dist/mini-default.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: light;
+            --bg: #0b1021;
+            --bg-soft: #111633;
+            --accent: #7c5dfa;
+            --accent-strong: #5730c7;
+            --text: #e2e6ff;
+            --text-muted: #b3b9d8;
+            --card: #161b3f;
+            --card-soft: #1f2555;
+            --border: rgba(255,255,255,0.08);
+            --success: #2fd98b;
+            --warning: #ffc857;
+            --error: #ff6b6b;
+        }
+        * {
+            box-sizing: border-box;
         }
         body {
-            background: #f5f6fa;
+            margin: 0;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top, #3c4fd5, #0b1021 45%);
+            min-height: 100vh;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .app-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            padding: 2rem 1.5rem 3rem;
         }
         header {
-            background: #364fc7;
-            color: #fff;
-            padding: 1.5rem 0;
-            margin-bottom: 2rem;
+            background: linear-gradient(135deg, rgba(124,93,250,0.25), rgba(29,78,216,0.25));
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 1.8rem 2rem;
+            box-shadow: 0 25px 70px rgba(10,15,50,0.45);
+            backdrop-filter: blur(18px);
         }
-        header h1 {
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .hero h1 {
             margin: 0;
-            font-size: 1.8rem;
+            font-size: clamp(1.75rem, 3vw, 2.4rem);
         }
-        header nav a {
-            color: #dce4ff;
-            margin-right: 1rem;
+        .hero p {
+            color: var(--text-muted);
+            margin: 0.35rem 0 0;
         }
-        header nav a:hover {
-            color: #fff;
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
-        .container {
-            max-width: 960px;
+        .site-nav {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .site-nav a {
+            padding: 0.65rem 1.2rem;
+            border-radius: 999px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .site-nav a:hover {
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        main {
+            flex: 1;
+            max-width: 1100px;
+            width: 100%;
             margin: 0 auto;
-            padding: 0 1.2rem 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
         }
         .messages {
-            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
-        .messages .message {
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            margin-bottom: 0.6rem;
+        .message {
+            padding: 0.85rem 1.25rem;
+            border-radius: 14px;
             font-weight: 500;
+            border: 1px solid var(--border);
+            animation: pop 0.3s ease;
         }
-        .message-success {
-            background: #c3fae8;
-            color: #0b7285;
-        }
-        .message-warning {
-            background: #ffe8cc;
-            color: #d9480f;
-        }
-        .message-error {
-            background: #ffc9c9;
-            color: #c92a2a;
+        .message-success { background: rgba(47,217,139,0.12); color: var(--success); }
+        .message-warning { background: rgba(255,200,87,0.12); color: var(--warning); }
+        .message-error { background: rgba(255,107,107,0.12); color: var(--error); }
+        @keyframes pop {
+            from { transform: translateY(6px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         .panel {
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            padding: 1.5rem;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 1.8rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 18px 50px rgba(5,10,30,0.35);
+        }
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.35rem;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
             margin-bottom: 1.5rem;
         }
-        .status {
+        .panel-header p {
+            margin: 0.25rem 0 0;
+            color: var(--text-muted);
+        }
+        .eyebrow {
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            background: var(--card-soft);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        .empty-state {
+            background: rgba(255,255,255,0.04);
+            border-radius: 18px;
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            border: 1px dashed var(--border);
+        }
+        .chip {
             display: inline-flex;
             align-items: center;
-            padding: 0.2rem 0.6rem;
             border-radius: 999px;
+            padding: 0.2rem 0.85rem;
             font-size: 0.85rem;
             font-weight: 600;
         }
-        .status--available {
-            background: #d3f9d8;
-            color: #2b8a3e;
+        .chip--accent {
+            background: rgba(124,93,250,0.2);
+            color: #fff;
+            border: 1px solid rgba(124,93,250,0.3);
         }
-        .status--loaned {
-            background: #ffe3e3;
-            color: #c92a2a;
-        }
-        table {
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        footer {
-            text-align: center;
-            margin: 3rem 0 1rem;
-            color: #6c757d;
-            font-size: 0.85rem;
+        .chip--ghost {
+            background: rgba(255,255,255,0.07);
+            color: var(--text-muted);
         }
         .styled-form {
             display: grid;
-            gap: 1rem;
+            gap: 1.25rem;
+        }
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
         .field {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.5rem;
         }
         .field label {
             font-weight: 600;
-            color: #364fc7;
+            color: var(--text);
         }
         .field input,
-        .field select {
-            max-width: 360px;
+        .field select,
+        .field textarea {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.9rem 1rem;
+            color: var(--text);
+            font-size: 1rem;
+        }
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124,93,250,0.25);
         }
         .helptext {
-            font-size: 0.8rem;
-            color: #868e96;
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
         .field-error {
-            font-size: 0.82rem;
-            color: #c92a2a;
+            font-size: 0.85rem;
+            color: var(--error);
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .button,
+        button,
+        input[type="submit"] {
+            cursor: pointer;
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.8rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: var(--accent);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .button.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .button.small {
+            padding: 0.55rem 1.1rem;
+            font-size: 0.85rem;
+        }
+        .button:hover,
+        button:hover,
+        input[type="submit"]:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 15px 35px rgba(124,93,250,0.35);
+            background: var(--accent-strong);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 560px;
+        }
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+        }
+        thead {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        tbody tr {
+            border-top: 1px solid var(--border);
+        }
+        tbody tr:hover {
+            background: rgba(124,93,250,0.08);
+        }
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        footer span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .data-source-switch {
+            margin: 0;
+        }
+        .data-source-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .data-source-switch button {
+            white-space: nowrap;
+        }
+        @media (max-width: 640px) {
+            header, .panel {
+                padding: 1.4rem;
+            }
+            .site-nav {
+                width: 100%;
+            }
+            .site-nav a {
+                flex: 1 1 auto;
+                text-align: center;
+            }
+            .table-wrapper {
+                border-radius: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1>Bibliotequita</h1>
-            <nav>
-                <a href="{% url 'lista_libros' %}">Inicio</a>
-                <a href="{% url 'nuevo_libro' %}">Agregar libro</a>
-                <a href="{% url 'lista_calificaciones' %}">Calificaciones</a>
-
-            </nav>
-        </div>
-    </header>
-    <main class="container">
-        {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                    <div class="message message-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
+    <div class="app-shell">
+        <header>
+            <div class="hero">
+                <div>
+                    <h1>Bibliotequita</h1>
+                    <p>Gestiona libros, pr&eacute;stamos y calificaciones con estilo moderno.</p>
+                </div>
+                <div class="header-actions">
+                    <nav class="site-nav">
+                        <a href="{% url 'lista_libros' %}">Inicio</a>
+                        <a href="{% url 'nuevo_libro' %}">Agregar libro</a>
+                        <a href="{% url 'lista_calificaciones' %}">Calificaciones</a>
+                    </nav>
+                    <form method="post" action="{% url 'cambiar_fuente_datos' %}" class="data-source-switch">
+                        {% csrf_token %}
+                        <input type="hidden" name="source" value="{{ alternate_data_source }}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <div class="data-source-controls">
+                            <span class="chip chip--ghost">Actual: {{ current_data_source|upper }}</span>
+                            <button type="submit" class="button secondary small">
+                                Cambiar a {{ alternate_data_source|upper }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
-    <footer>
-        <div class="container">
-            Bibliotequita · Javier Esteban Urrego Rodriguez :3
-        </div>
-    </footer>
+        </header>
+        <main>
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message message-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+        <footer>
+            Bibliotequita &mdash; creado por <span>Javier Esteban Urrego Rodriguez</span>
+        </footer>
+    </div>
 </body>
 </html>
