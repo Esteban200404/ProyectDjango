@@ -1,14 +1,19 @@
 #!/usr/bin/env python
-"""Entry point to run Django management commands from the repo root."""
+"""Thin wrapper so Railway (and local) can call manage.py from repo root."""
 from pathlib import Path
+import runpy
 import sys
 
 ROOT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = ROOT_DIR / 'mysite'
-if PROJECT_DIR.exists():
-    sys.path.insert(0, str(PROJECT_DIR))
+INNER_MANAGE = PROJECT_DIR / 'manage.py'
 
-from mysite.manage import main
+
+def main():
+    if not INNER_MANAGE.exists():
+        raise SystemExit('No se encontró mysite/manage.py; revisa la estructura del proyecto.')
+    sys.path.insert(0, str(PROJECT_DIR))
+    runpy.run_path(str(INNER_MANAGE), run_name='__main__')
 
 
 if __name__ == '__main__':
